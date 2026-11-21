@@ -97,7 +97,11 @@ def load_model(model_path: Path) -> Any:
 
 
 def save_model_info(
-    save_json_path: Path, run_id: str, artifact_path: str, model_name: str
+    save_json_path: Path,
+    run_id: str,
+    artifact_path: str,
+    model_name: str,
+    model_uri: str,
 ) -> None:
     """Save MLflow run and artifact metadata to a JSON file."""
     logger.info("Saving model run information to %s", save_json_path)
@@ -106,6 +110,7 @@ def save_model_info(
             "run_id": run_id,
             "artifact_path": artifact_path,
             "model_name": model_name,
+            "model_uri": model_uri,
         }
         with open(save_json_path, "w", encoding="utf-8") as f:
             json.dump(info_dict, f, indent=4)
@@ -208,7 +213,7 @@ def main() -> None:
             )
 
             # Log the final model
-            mlflow.sklearn.log_model(
+            model_info = mlflow.sklearn.log_model(
                 model,
                 name=MODEL_NAME,
                 signature=model_signature,
@@ -238,6 +243,7 @@ def main() -> None:
             run_id=run_id,
             artifact_path=artifact_uri,
             model_name=MODEL_NAME,
+            model_uri=model_info.model_uri,
         )
 
         logger.info("Model evaluation pipeline completed successfully")
