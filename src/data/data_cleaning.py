@@ -285,7 +285,7 @@ def perform_data_cleaning(data: pd.DataFrame, save_data_path: Path) -> pd.DataFr
             .pipe(drop_columns, columns=COLUMNS_TO_DROP)
         )
 
-        clean_data.to_csv(save_data_path)
+        clean_data.to_csv(save_data_path, index= False)
         logger.info(
             "Cleaned data saved successfully to %s (final shape: %s)",
             save_data_path,
