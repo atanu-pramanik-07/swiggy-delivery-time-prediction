@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery ETA — Swiggy Time Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8Zm0 10.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1>Delivery ETA Engine</h1>
+          <p class="subtitle">Stacking Regressor · Real-time Inference Console</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="preset-group" role="group" aria-label="Load sample scenario">
+          <span class="preset-label">Presets</span>
+          <button type="button" class="preset-btn" data-preset="indore">Indore · Fast</button>
+          <button type="button" class="preset-btn" data-preset="bengaluru">Bengaluru · Jam</button>
+          <button type="button" class="preset-btn" data-preset="hyderabad">Hyderabad · Storm</button>
+        </div>
+        <div class="status-pill" id="apiStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left: Input Form -->
+      <form id="predictForm" class="form-column" novalidate>
+        <!-- Section 1: Order & Schedule -->
+        <section class="card reveal" style="--delay: 0ms">
+          <div class="card-header">
+            <span class="step-index">01</span>
+            <div>
+              <h2>Order & Timing</h2>
+              <p>Identifiers and order-to-pickup timestamps</p>
+            </div>
+          </div>
+
+          <div class="field-grid cols-2">
+            <div class="field">
+              <label for="ID">Order ID</label>
+              <input id="ID" name="ID" type="text" value="0x4607" required />
+            </div>
+
+            <div class="field">
+              <label for="Delivery_person_ID">
+                Rider ID
+                <span class="hint">e.g. INDORES13DEL02</span>
+              </label>
+              <input
+                id="Delivery_person_ID"
+                name="Delivery_person_ID"
+                type="text"
+                value="INDORES13DEL02"
+                pattern="^[A-Z]+RES\d+DEL\d+$"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="field-grid cols-3">
+            <div class="field">
+              <label for="Order_Date">Order Date</label>
+              <input id="Order_Date" name="Order_Date" type="date" value="2022-03-19" required />
+            </div>
+
+            <div class="field">
+              <label for="Time_Orderd">Order Placed</label>
+              <input id="Time_Orderd" name="Time_Orderd" type="time" step="1" value="11:30:00" required />
+            </div>
+
+            <div class="field">
+              <label for="Time_Order_picked">Order Picked</label>
+              <input id="Time_Order_picked" name="Time_Order_picked" type="time" step="1" value="11:45:00" required />
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: Route Coordinates -->
+        <section class="card reveal" style="--delay: 60ms">
+          <div class="card-header">
+            <span class="step-index">02</span>
+            <div>
+              <h2>Route Coordinates</h2>
+              <p>Indian geographic bounds (Lat 6–38, Lon 68–98)</p>
+            </div>
+            <span class="live-chip mono" id="inlineDistanceChip">3.03 km</span>
+          </div>
+
+          <div class="coord-split">
+            <div class="coord-box">
+              <div class="coord-title">
+                <span class="marker-dot origin"></span>
+                Restaurant Origin
+              </div>
+              <div class="field-grid cols-2">
+                <div class="field">
+                  <label for="Restaurant_latitude">Latitude</label>
+                  <input
+                    id="Restaurant_latitude"
+                    name="Restaurant_latitude"
+                    type="number"
+                    step="0.000001"
+                    min="6"
+                    max="38"
+                    value="22.745049"
+                    required
+                  />
+                </div>
+                <div class="field">
+                  <label for="Restaurant_longitude">Longitude</label>
+                  <input
+                    id="Restaurant_longitude"
+                    name="Restaurant_longitude"
+                    type="number"
+                    step="0.000001"
+                    min="68"
+                    max="98"
+                    value="75.892471"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="coord-box">
+              <div class="coord-title">
+                <span class="marker-dot destination"></span>
+                Delivery Dropoff
+              </div>
+              <div class="field-grid cols-2">
+                <div class="field">
+                  <label for="Delivery_location_latitude">Latitude</label>
+                  <input
+                    id="Delivery_location_latitude"
+                    name="Delivery_location_latitude"
+                    type="number"
+                    step="0.000001"
+                    min="6"
+                    max="38"
+                    value="22.765049"
+                    required
+                  />
+                </div>
+                <div class="field">
+                  <label for="Delivery_location_longitude">Longitude</label>
+                  <input
+                    id="Delivery_location_longitude"
+                    name="Delivery_location_longitude"
+                    type="number"
+                    step="0.000001"
+                    min="68"
+                    max="98"
+                    value="75.912471"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: Rider & Vehicle -->
+        <section class="card reveal" style="--delay: 120ms">
+          <div class="card-header">
+            <span class="step-index">03</span>
+            <div>
+              <h2>Rider & Fleet</h2>
+              <p>Partner profile, vehicle health, and batching load</p>
+            </div>
+          </div>
+
+          <div class="field-grid cols-2">
+            <div class="field">
+              <div class="range-header">
+                <label for="Delivery_person_Age">Rider Age</label>
+                <span class="range-val mono" id="ageValue">34 yrs</span>
+              </div>
+              <input
+                id="Delivery_person_Age"
+                name="Delivery_person_Age"
+                type="range"
+                min="18"
+                max="65"
+                step="1"
+                value="34"
+              />
+            </div>
+
+            <div class="field">
+              <div class="range-header">
+                <label for="Delivery_person_Ratings">Rider Rating</label>
+                <span class="range-val mono" id="ratingValue">4.5 ★</span>
+              </div>
+              <input
+                id="Delivery_person_Ratings"
+                name="Delivery_person_Ratings"
+                type="range"
+                min="1.0"
+                max="5.0"
+                step="0.1"
+                value="4.5"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Vehicle Type</label>
+            <div class="segmented" data-field="Type_of_vehicle">
+              <button type="button" class="seg-btn active" data-value="motorcycle">Motorcycle</button>
+              <button type="button" class="seg-btn" data-value="scooter">Scooter</button>
+              <button type="button" class="seg-btn" data-value="electric_scooter">Electric Scooter</button>
+              <button type="button" class="seg-btn" data-value="bicycle">Bicycle</button>
+            </div>
+            <input type="hidden" id="Type_of_vehicle" name="Type_of_vehicle" value="motorcycle" />
+          </div>
+
+          <div class="field-grid cols-2">
+            <div class="field">
+              <label>Vehicle Condition (0–3)</label>
+              <div class="segmented compact" data-field="Vehicle_condition">
+                <button type="button" class="seg-btn" data-value="0">0</button>
+                <button type="button" class="seg-btn" data-value="1">1</button>
+                <button type="button" class="seg-btn active" data-value="2">2</button>
+                <button type="button" class="seg-btn" data-value="3">3</button>
+              </div>
+              <input type="hidden" id="Vehicle_condition" name="Vehicle_condition" value="2" />
+            </div>
+
+            <div class="field">
+              <label>Multiple Deliveries</label>
+              <div class="segmented compact" data-field="multiple_deliveries">
+                <button type="button" class="seg-btn active" data-value="0">0</button>
+                <button type="button" class="seg-btn" data-value="1">1</button>
+                <button type="button" class="seg-btn" data-value="2">2</button>
+                <button type="button" class="seg-btn" data-value="3">3</button>
+              </div>
+              <input type="hidden" id="multiple_deliveries" name="multiple_deliveries" value="0" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: Environment & Context -->
+        <section class="card reveal" style="--delay: 180ms">
+          <div class="card-header">
+            <span class="step-index">04</span>
+            <div>
+              <h2>Conditions & Context</h2>
+              <p>Road congestion, weather, city density, and order category</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Road Traffic Density</label>
+            <div class="segmented traffic-seg" data-field="Road_traffic_density">
+              <button type="button" class="seg-btn" data-value="Low">Low</button>
+              <button type="button" class="seg-btn" data-value="Medium">Medium</button>
+              <button type="button" class="seg-btn active" data-value="High">High</button>
+              <button type="button" class="seg-btn" data-value="Jam">Jam</button>
+            </div>
+            <input type="hidden" id="Road_traffic_density" name="Road_traffic_density" value="High" />
+          </div>
+
+          <div class="field-grid cols-2">
+            <div class="field">
+              <label for="Weatherconditions">Weather Condition</label>
+              <select id="Weatherconditions" name="Weatherconditions">
+                <option value="conditions Sunny" selected>Sunny</option>
+                <option value="conditions Cloudy">Cloudy</option>
+                <option value="conditions Windy">Windy</option>
+                <option value="conditions Fog">Fog</option>
+                <option value="conditions Stormy">Stormy</option>
+                <option value="conditions Sandstorms">Sandstorms</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="Type_of_order">Order Category</label>
+              <select id="Type_of_order" name="Type_of_order">
+                <option value="Snack" selected>Snack</option>
+                <option value="Meal">Meal</option>
+                <option value="Drinks">Drinks</option>
+                <option value="Buffet">Buffet</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-grid cols-2">
+            <div class="field">
+              <label>City Tier</label>
+              <div class="segmented" data-field="City">
+                <button type="button" class="seg-btn active" data-value="Urban">Urban</button>
+                <button type="button" class="seg-btn" data-value="Metropolitian">Metro</button>
+                <button type="button" class="seg-btn" data-value="Semi-Urban">Semi-Urban</button>
+              </div>
+              <input type="hidden" id="City" name="City" value="Urban" />
+            </div>
+
+            <div class="field">
+              <label>Festival Day</label>
+              <div class="segmented" data-field="Festival">
+                <button type="button" class="seg-btn active" data-value="No">No</button>
+                <button type="button" class="seg-btn" data-value="Yes">Yes</button>
+              </div>
+              <input type="hidden" id="Festival" name="Festival" value="No" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Submit Bar -->
+        <div class="submit-bar reveal" style="--delay: 220ms">
+          <button type="submit" id="submitBtn" class="primary-btn">
+            <span class="btn-label">Estimate Delivery Time</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M5 12h14m-6-6 6 6-6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </form>
+
+      <!-- Right: Live Telemetry & Result -->
+      <aside class="output-column">
+        <!-- Main ETA Card -->
+        <section class="card eta-card reveal" id="etaCard" style="--delay: 80ms">
+          <div class="eta-top">
+            <span class="eta-kicker">Predicted Delivery Time</span>
+            <span class="pace-badge" id="paceBadge">Awaiting Run</span>
+          </div>
+
+          <div class="eta-display">
+            <span class="eta-number mono" id="etaNumber">--.-</span>
+            <span class="eta-unit">min</span>
+          </div>
+
+          <p class="eta-sub" id="etaRange">
+            Configure order parameters and run inference against <code class="mono">/predict</code>.
+          </p>
+
+          <!-- Animated Route Track -->
+          <div class="route-visual" id="routeVisual">
+            <div class="route-node">
+              <span class="marker-dot origin"></span>
+              <span>Kitchen</span>
+            </div>
+            <div class="route-track">
+              <svg viewBox="0 0 220 20" preserveAspectRatio="none" aria-hidden="true">
+                <line class="track-base" x1="0" y1="10" x2="220" y2="10" />
+                <line class="track-active" id="trackActive" x1="0" y1="10" x2="220" y2="10" />
+              </svg>
+              <span class="route-pulse" id="routePulse"></span>
+            </div>
+            <div class="route-node">
+              <span class="marker-dot destination"></span>
+              <span>Customer</span>
+            </div>
+          </div>
+
+          <!-- Error Box -->
+          <div class="error-banner" id="errorBanner" hidden></div>
+        </section>
+
+        <!-- Live Derived Features (Client-Side Mirror) -->
+        <section class="card reveal" style="--delay: 140ms">
+          <div class="card-header compact">
+            <h2>Live Derived Features</h2>
+            <span class="muted-tag">Client preview</span>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-tile">
+              <span class="metric-label">Haversine Distance</span>
+              <span class="metric-val mono" id="metricDistance">3.03 km</span>
+              <span class="metric-sub" id="metricDistType">short</span>
+            </div>
+
+            <div class="metric-tile">
+              <span class="metric-label">Pickup Wait</span>
+              <span class="metric-val mono" id="metricPickup">15 min</span>
+              <span class="metric-sub">order → dispatch</span>
+            </div>
+
+            <div class="metric-tile">
+              <span class="metric-label">Time Window</span>
+              <span class="metric-val mono" id="metricTimeOfDay">morning</span>
+              <span class="metric-sub" id="metricDayType">weekend</span>
+            </div>
+
+            <div class="metric-tile">
+              <span class="metric-label">City Code</span>
+              <span class="metric-val mono" id="metricCityCode">INDO</span>
+              <span class="metric-sub">from rider ID</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent History -->
+        <section class="card reveal" style="--delay: 200ms">
+          <div class="card-header compact">
+            <h2>Recent Predictions</h2>
+            <button type="button" class="text-btn" id="clearHistoryBtn" hidden>Clear</button>
+          </div>
+          <ul class="history-list" id="historyList">
+            <li class="history-empty">No predictions yet in this session.</li>
+          </ul>
+        </section>
+
+        <!-- Payload Inspector -->
+        <details class="card payload-card reveal" style="--delay: 240ms">
+          <summary>
+            <span>JSON Request Payload</span>
+            <span class="mono summary-tag">POST /predict</span>
+          </summary>
+          <pre class="payload-code mono" id="payloadPreview"></pre>
+        </details>
+      </aside>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
