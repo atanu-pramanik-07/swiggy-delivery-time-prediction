@@ -31,7 +31,7 @@ REPO_NAME: str = "swiggy-delivery-time-prediction"
 MLFLOW_TRACKING_URI: str = (
     f"https://dagshub.com/{REPO_OWNER}/{REPO_NAME}.mlflow"
 )
-MODEL_STAGE: str = "Staging"
+MODEL_STAGE: str = "Production"
 RUN_INFO_PATH: Path = Path("run_information.json")
 PREPROCESSOR_PATH: Path = Path("models/preprocessor.joblib")
 
@@ -248,13 +248,13 @@ ordinal_cat_cols = ["traffic", "distance_type"]
 # Initialize MLflow client and load model artifacts
 client = MlflowClient()
 model_name = load_model_information(RUN_INFO_PATH)["model_name"]
-latest_model_ver = client.get_latest_versions(name=model_name, stages=[MODEL_STAGE])
-logger.info(
-    "Loaded latest '%s' versions for '%s': %s",
-    MODEL_STAGE,
-    model_name,
-    [v.version for v in latest_model_ver],
-)
+# latest_model_ver = client.get_latest_versions(name=model_name, stages=[MODEL_STAGE])
+# logger.info(
+#     "Loaded latest '%s' versions for '%s': %s",
+#     MODEL_STAGE,
+#     model_name,
+#     [v.version for v in latest_model_ver],
+# )
 
 model_path = f"models:/{model_name}/{MODEL_STAGE}"
 logger.info("Loading model from MLflow registry: %s", model_path)
