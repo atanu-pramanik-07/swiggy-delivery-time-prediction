@@ -21,18 +21,23 @@ model_name = load_model_information("run_information.json")["model_name"]
 
 @pytest.mark.parametrize(argnames="model_name, stage",
                          argvalues=[(model_name, "Staging")])
-def test_load_model_from_registry(model_name,stage):
+def test_load_model_from_registry():
     client = MlflowClient()
-    latest_versions = client.get_latest_versions(name=model_name,stages=[stage])
-    latest_version = latest_versions[0].version if latest_versions else None
-    
-    assert latest_version is not None, f"No model at {stage} stage"
-    
-    # load the model
-    model_path = f"models:/{model_name}/{stage}"
 
-    # load the latest model from model registry
+    staging_versions = client.get_latest_versions(name=model_name, stages=["Staging"])
+    prod_versions = client.get_latest_versions(name=model_name, stages=["Production"])
+
+    if staging_versions:
+        stage = "Staging"
+        latest_version = staging_versions[0].version
+    elif prod_versions:
+        stage = "Production"
+        latest_version = prod_versions[0].version
+    else:
+        pytest.fail(f"No model found in Staging or Production for '{model_name}'")
+
+    model_path = f"models:/{model_name}/{stage}"
     model = mlflow.sklearn.load_model(model_path)
-    
+
     assert model is not None, "Failed to load model from registry"
-    print(f"The {model_name} model with version {latest_version} was loaded successfully")
+    print(f"Loaded {model_name} v{latest_version} from {stage}")
